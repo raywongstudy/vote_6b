@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+      <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+
+<style>
+body{
+  margin:0;
+  padding:0;
+  font-family: sans-serif;
+  box-sizing:border-box;
+  border-left:4px solid blue;
+  border-right:4px solid red;
+}
+h1,h2,h3,h4,h5{
+  padding:10px;
+  margin:0;
+}
+.container{
+  box-sizing:border-box;
+  max-width:400px;
+  width:70%;
+  margin:0 auto;
+  min-height:100vh;
+}
+.topic{
+  display:block;
+  text-align:center;
+}
+.topic > h1{
+  border-bottom:3px solid darkblue;
+  color:darkblue;
+}
+.topic > h4{
+  color:darkgray;
+}
+.check_lab{
+  dispaly:block;
+  cursor: pointer;
+  padding:10px;
+  border:1px solid darkblue;
+  border-radius:5px;
+}
+.check_btn:checked + label > .check_lab{
+  background-color:darkblue;
+  color:white;
+}
+#vote{
+  text-align:center;
+  margin:0 auto;
+}
+#vote .button:active{
+  position: relative;
+  top:2px;
+  left:2px;
+  background-color:#ccc;
+}
+.selects_msg{
+  padding:10px;
+  display:block;
+}
+.lists_submit_btn{
+  border:1px solid darkblue;
+  padding:10px;
+  width:100%;
+  border-radius:5px;
+  cursor:pointer;
+}
+.lists_submit_btn:active{
+  background-color:darkblue;
+  color:white;
+}
+
+.footer{
+  box-sizing:border-box;
+  width:100%;
+  background-color:black;
+  color:white;
+  display:block;
+  text-align:center;
+  padding:10px;
+}
+.show_message{
+  background-color:red;
+  color:white;
+  text-align:center;
+  border-radius:5px;
+}
+
+.result_lists{
+  list-style:none;
+  padding:0;
+}
+
+.result_lists > li{
+  padding:10px;
+  text-align:center;
+  
+  border:1px solid darkblue;
+  border-radius:5px;
+  margin:10px 0;
+  
+  color:darkblue;
+  font-weight:bold;
+  font-size:1.2em;
+}
+
+</style>
+<body>
+  <script src="https://www.gstatic.com/firebasejs/6.1.1/firebase.js"></script>
+  <div class="container" id="app">
+    <div class="topic">
+      <h1>6B班聚投票</h1>
+      <h4>暫定8月12號晚7點,有任何意見可隨時提出! :D</h4>
+    </div>
+    <div id="vote" v-if="!submitCheck">
+      <div v-for="checklist in checklists">
+        <input class="check_btn" style="display:none" type="checkbox" :id="checklist.id" :value="checklist.value" v-model="checkedLists">
+        <label :for="checklist.id">
+          <div class="check_lab">{{checklist.id}}:{{checklist.value}}</div>
+        </label><br>
+      </div>
+        <span class="selects_msg">You selects: {{ checkedLists }}</span><br>
+      
+      <h4 class="show_message" v-show="show_message">!! 你最少提交一個以上的選擇 !!</h4>
+      <button class="lists_submit_btn" @click="submitCheckLists()">Submit</button>      
+    </div>
+    <div class="message" v-if="submitCheck">
+      <h3 style="text-align:center">你已成功提交你的投票!!</h3>
+      <ul class="result_lists">
+        <li v-for="(dataBaseList,key) in dataBaseLists">{{key}} 的票數 : {{Object.keys(dataBaseList).length}}票</li>
+      </ul>    
+    </div>
+  </div>
+  
+  <div class="footer">
+    CopyRight &copy; 2019 Raywong
+  </div>
+</body>
+
+
+<script>
+
+new Vue({
+  el: '#app',
+  data: {
+    show_message:false,
+    submitCheck:false,
+    checkedLists: [],
+    dataBaseLists:[],
+    database:'',
+    checklists:[
+      {
+        id:1,
+        value:'師傅仔'
+      },
+      {
+        id:2,
+        value:'pizza hut'
+      },
+      {
+        id:3,
+        value:'楊枝金撈'
+      },
+      {
+        id:4,
+        value:'金玉滿堂'
+      },
+      {
+        id:5,
+        value:'臭臭鍋'
+      },
+      {
+        id:6,
+        value:'牛鍋王'
+      },
+      {
+        id:7,
+        value:'碳燒'
+      },
+      {
+        id:8,
+        value:'後宮'
+      },
+      {
+        id:9,
+        value:'川粵味蕾'
+      },
+      {
+        id:10,
+        value:'華峰'
+      },
+      {
+        id:11,
+        value:'泰皇宮'
+      }
+    ]
+  },
+  mounted(){
+    this.fireBaseInit()
+    this.checkSubmit()
+  },
+  methods:{
+    checkSubmit(){
+      var ls_submit = localStorage['submit']
+      if(ls_submit == 'true'){
+        this.submitCheck = true
+        this.showData()
+      }else if(ls_submit == 'false'){
+        this.submitCheck = false
+      }
+    },
+    submitCheckLists(){
+      this.pushData()
+      this.checkSubmit()
+
+    },
+    fireBaseInit(){
+      firebase.initializeApp({
+        databaseURL: "https://vote-data-6b.firebaseio.com/"
+      });
+      this.database = firebase.database();
+    },
+    pushData(){
+      dataLists_len = this.checkedLists.length
+      if(dataLists_len == 0){
+        this.show_message = true
+      }else if(dataLists_len > 0){
+        this.show_message = false
+        for(i=0;i<dataLists_len;i++){
+          this.database.ref('/vote_data/'+this.checkedLists[i]).push('add');
+          localStorage['submit'] = 'true'
+        }
+      }
+      
+    },
+    showData(){
+      this.database.ref('/vote_data/').once('value',(e)=>{
+        this.dataBaseLists = e.val()
+      })
+    }
+  }
+})
+
+
+</script>
+</html>
